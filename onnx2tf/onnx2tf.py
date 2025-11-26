@@ -69,6 +69,7 @@ def convert(
     output_signaturedefs: Optional[bool] = False,
     output_h5: Optional[bool] = False,
     output_keras_v3: Optional[bool] = False,
+    output_keras_pb: Optional[bool] = False,
     output_tfv1_pb: Optional[bool] = False,
     output_weights: Optional[bool] = False,
     copy_onnx_input_output_names_to_tflite: Optional[bool] = False,
@@ -1414,6 +1415,26 @@ def convert(
                 import traceback
                 error(traceback.format_exc(), prefix=False)
 
+        if output_keras_pb:
+            try:
+                info(Color.REVERSE(f'keras_pb output started'), '=' * 61)
+                model.save(f'{output_folder_path}/{output_file_name}_float32')
+                info(Color.GREEN(f'keras_pb output complete!'))
+            except ValueError as e:
+                msg_list = [s for s in e.args if isinstance(s, str)]
+                if len(msg_list) > 0:
+                    for s in msg_list:
+                        if 'Unable to serialize VariableSpec' in s:
+                            break
+                else:
+                    error(e)
+                    import traceback
+                    error(traceback.format_exc(), prefix=False)
+            except Exception as e:
+                error(e)
+                import traceback
+                error(traceback.format_exc(), prefix=False)
+
         # Create concrete func
         run_model = tf.function(
             func=lambda *inputs : model(inputs),
@@ -2423,6 +2444,13 @@ def main():
             'Output model in Keras (keras_v3) format.'
     )
     parser.add_argument(
+        '-okpb',
+        '--output_keras_pb',
+        action='store_true',
+        help=\
+            'Output model in Keras (.pb) format.'
+    )
+    parser.add_argument(
         '-otfv1pb',
         '--output_tfv1_pb',
         action='store_true',
@@ -3056,6 +3084,7 @@ def main():
         output_signaturedefs=args.output_signaturedefs,
         output_h5=args.output_h5,
         output_keras_v3=args.output_keras_v3,
+        output_keras_pb=args.output_keras_pb,
         output_tfv1_pb=args.output_tfv1_pb,
         output_weights=args.output_weights,
         copy_onnx_input_output_names_to_tflite=args.copy_onnx_input_output_names_to_tflite,
